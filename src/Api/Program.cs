@@ -20,7 +20,17 @@ builder.Services.AddCors(options =>
 builder.Services.AddHealthChecks();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    var apiXml = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var apiXmlPath = Path.Combine(AppContext.BaseDirectory, apiXml);
+    options.IncludeXmlComments(apiXmlPath, includeControllerXmlComments: true);
+
+    var appAssembly = typeof(ICMarketsTest.Application.Contracts.BlockchainSnapshotDto).Assembly;
+    var appXml = $"{appAssembly.GetName().Name}.xml";
+    var appXmlPath = Path.Combine(AppContext.BaseDirectory, appXml);
+    options.IncludeXmlComments(appXmlPath);
+});
 
 var app = builder.Build();
 

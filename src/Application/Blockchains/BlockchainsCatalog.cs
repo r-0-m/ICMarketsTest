@@ -1,5 +1,8 @@
 namespace ICMarketsTest.Application.Blockchains;
 
+/// <summary>
+/// Catalog of supported BlockCypher networks.
+/// </summary>
 public static class BlockchainsCatalog
 {
     public static readonly IReadOnlyList<BlockchainDefinition> All = new[]
