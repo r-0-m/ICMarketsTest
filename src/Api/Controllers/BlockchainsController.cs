@@ -2,7 +2,6 @@ using ICMarketsTest.Api.Requests;
 using ICMarketsTest.Application.Blockchains;
 using ICMarketsTest.Application.Contracts;
 using ICMarketsTest.Application.Interfaces;
-using ICMarketsTest.Infrastructure.Stores;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ICMarketsTest.Controllers;
@@ -15,15 +14,12 @@ namespace ICMarketsTest.Controllers;
 public sealed class BlockchainsController : ControllerBase
 {
     private readonly ISnapshotStore _snapshotStore;
+    private readonly IBlockCypherClient _blockCypherClient;
 
-    public BlockchainsController()
-        : this(new InMemorySnapshotStore())
-    {
-    }
-
-    public BlockchainsController(ISnapshotStore snapshotStore)
+    public BlockchainsController(ISnapshotStore snapshotStore, IBlockCypherClient blockCypherClient)
     {
         _snapshotStore = snapshotStore;
+        _blockCypherClient = blockCypherClient;
     }
 
     /// <summary>Returns supported BlockCypher networks.</summary>
@@ -54,26 +50,50 @@ public sealed class BlockchainsController : ControllerBase
     [HttpPost("sync")]
     [ProducesResponseType(typeof(BlockchainSnapshotDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
-    public Task<ActionResult<BlockchainSnapshotDto>> SyncBlockchain(
+    public async Task<ActionResult<BlockchainSnapshotDto>> SyncBlockchain(
         [FromBody] SyncBlockchainRequest request,
         CancellationToken cancellationToken)
     {
         if (!BlockchainsCatalog.TryGet(request.Network, out var definition))
         {
-            return Task.FromResult<ActionResult<BlockchainSnapshotDto>>(
-                BadRequest("Unsupported blockchain network."));
+            return BadRequest("Unsupported blockchain network.");
         }
 
-        return SyncSingleAsync(definition, cancellationToken);
+        var payload = await TryFetchPayloadAsync(definition.Url, cancellationToken);
+        var snapshot = new BlockchainSnapshotDto
+        {
+            Id = Guid.NewGuid(),
+            Network = definition.Key,
+            SourceUrl = definition.Url,
+            Payload = payload,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        await _snapshotStore.AddAsync(snapshot, cancellationToken);
+        return Ok(snapshot);
     }
 
     /// <summary>Synchronizes all networks and stores snapshots.</summary>
     [HttpPost("sync-all")]
     [ProducesResponseType(typeof(IReadOnlyList<BlockchainSnapshotDto>), StatusCodes.Status200OK)]
-    public Task<ActionResult<IReadOnlyList<BlockchainSnapshotDto>>> SyncAll(
+    public async Task<ActionResult<IReadOnlyList<BlockchainSnapshotDto>>> SyncAll(
         CancellationToken cancellationToken)
     {
-        return SyncAllInternalAsync(cancellationToken);
+        var fetchTasks = BlockchainsCatalog.All.Select(async definition =>
+        {
+            var payload = await TryFetchPayloadAsync(definition.Url, cancellationToken);
+            return new BlockchainSnapshotDto
+            {
+                Id = Guid.NewGuid(),
+                Network = definition.Key,
+                SourceUrl = definition.Url,
+                Payload = payload,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+        });
+
+        var snapshots = await Task.WhenAll(fetchTasks);
+        await _snapshotStore.AddRangeAsync(snapshots, cancellationToken);
+        return Ok(snapshots);
     }
 
     private async Task<ActionResult<IReadOnlyList<BlockchainSnapshotDto>>> GetSnapshotsInternalAsync(
@@ -85,35 +105,15 @@ public sealed class BlockchainsController : ControllerBase
         return Ok(snapshots);
     }
 
-    private async Task<ActionResult<BlockchainSnapshotDto>> SyncSingleAsync(
-        BlockchainDefinition definition,
-        CancellationToken cancellationToken)
+    private async Task<string> TryFetchPayloadAsync(string url, CancellationToken cancellationToken)
     {
-        var snapshot = new BlockchainSnapshotDto
+        try
         {
-            Id = Guid.NewGuid(),
-            Network = definition.Key,
-            SourceUrl = definition.Url,
-            Payload = "{\"status\":\"not-implemented\"}",
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        await _snapshotStore.AddAsync(snapshot, cancellationToken);
-        return Ok(snapshot);
-    }
-
-    private async Task<ActionResult<IReadOnlyList<BlockchainSnapshotDto>>> SyncAllInternalAsync(
-        CancellationToken cancellationToken)
-    {
-        var snapshots = BlockchainsCatalog.All.Select(definition => new BlockchainSnapshotDto
+            return await _blockCypherClient.GetBlockchainAsync(url, cancellationToken);
+        }
+        catch
         {
-            Id = Guid.NewGuid(),
-            Network = definition.Key,
-            SourceUrl = definition.Url,
-            Payload = "{\"status\":\"not-implemented\"}",
-            CreatedAt = DateTimeOffset.UtcNow
-        }).ToList();
-
-        await _snapshotStore.AddRangeAsync(snapshots, cancellationToken);
-        return Ok(snapshots);
+            return "{\"status\":\"unavailable\"}";
+        }
     }
 }

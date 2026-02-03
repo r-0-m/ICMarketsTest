@@ -1,4 +1,5 @@
 using ICMarketsTest.Application.Interfaces;
+using ICMarketsTest.Infrastructure.Clients;
 using ICMarketsTest.Infrastructure.Stores;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,13 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
 builder.Services.AddSingleton<ISnapshotStore, InMemorySnapshotStore>();
+var blockCypherMinDelay =
+    builder.Configuration.GetValue<int?>("BlockCypher:MinDelayMilliseconds") ?? 350;
+builder.Services.AddSingleton(new BlockCypherClientOptions
+{
+    MinDelayMilliseconds = blockCypherMinDelay
+});
+builder.Services.AddHttpClient<IBlockCypherClient, BlockCypherClient>();
 
 builder.Services.AddCors(options =>
 {
