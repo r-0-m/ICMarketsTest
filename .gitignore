@@ -24,3 +24,6 @@ project.assets.json
 # Logs
 *.log
 
+# Local dev notes
+devnotes.txt
+

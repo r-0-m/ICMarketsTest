@@ -1,6 +1,8 @@
 using ICMarketsTest.Api.Requests;
 using ICMarketsTest.Application.Blockchains;
 using ICMarketsTest.Application.Contracts;
+using ICMarketsTest.Application.Interfaces;
+using ICMarketsTest.Infrastructure.Stores;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ICMarketsTest.Controllers;
@@ -12,12 +14,24 @@ namespace ICMarketsTest.Controllers;
 [Route("api/blockchains")]
 public sealed class BlockchainsController : ControllerBase
 {
+    private readonly ISnapshotStore _snapshotStore;
+
+    public BlockchainsController()
+        : this(new InMemorySnapshotStore())
+    {
+    }
+
+    public BlockchainsController(ISnapshotStore snapshotStore)
+    {
+        _snapshotStore = snapshotStore;
+    }
+
     /// <summary>Returns supported BlockCypher networks.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<BlockchainDefinition>), StatusCodes.Status200OK)]
     public ActionResult<IReadOnlyList<BlockchainDefinition>> GetDefinitions()
     {
-        return Ok();
+        return Ok(BlockchainsCatalog.All);
     }
 
     /// <summary>Returns snapshot history in descending CreatedAt order.</summary>
@@ -27,9 +41,13 @@ public sealed class BlockchainsController : ControllerBase
         [FromQuery] GetBlockchainSnapshotsRequest request,
         CancellationToken cancellationToken)
     {
-        _ = request;
-        _ = cancellationToken;
-        return Task.FromResult<ActionResult<IReadOnlyList<BlockchainSnapshotDto>>>(Ok());
+        var network = request.Network;
+        if (network is not null && BlockchainsCatalog.TryGet(network, out var definition))
+        {
+            network = definition.Key;
+        }
+
+        return GetSnapshotsInternalAsync(network, request.Limit, cancellationToken);
     }
 
     /// <summary>Synchronizes a single network and stores a snapshot.</summary>
@@ -40,9 +58,13 @@ public sealed class BlockchainsController : ControllerBase
         [FromBody] SyncBlockchainRequest request,
         CancellationToken cancellationToken)
     {
-        _ = request;
-        _ = cancellationToken;
-        return Task.FromResult<ActionResult<BlockchainSnapshotDto>>(Ok());
+        if (!BlockchainsCatalog.TryGet(request.Network, out var definition))
+        {
+            return Task.FromResult<ActionResult<BlockchainSnapshotDto>>(
+                BadRequest("Unsupported blockchain network."));
+        }
+
+        return SyncSingleAsync(definition, cancellationToken);
     }
 
     /// <summary>Synchronizes all networks and stores snapshots.</summary>
@@ -51,7 +73,47 @@ public sealed class BlockchainsController : ControllerBase
     public Task<ActionResult<IReadOnlyList<BlockchainSnapshotDto>>> SyncAll(
         CancellationToken cancellationToken)
     {
-        _ = cancellationToken;
-        return Task.FromResult<ActionResult<IReadOnlyList<BlockchainSnapshotDto>>>(Ok());
+        return SyncAllInternalAsync(cancellationToken);
+    }
+
+    private async Task<ActionResult<IReadOnlyList<BlockchainSnapshotDto>>> GetSnapshotsInternalAsync(
+        string? network,
+        int? limit,
+        CancellationToken cancellationToken)
+    {
+        var snapshots = await _snapshotStore.GetAsync(network, limit, cancellationToken);
+        return Ok(snapshots);
+    }
+
+    private async Task<ActionResult<BlockchainSnapshotDto>> SyncSingleAsync(
+        BlockchainDefinition definition,
+        CancellationToken cancellationToken)
+    {
+        var snapshot = new BlockchainSnapshotDto
+        {
+            Id = Guid.NewGuid(),
+            Network = definition.Key,
+            SourceUrl = definition.Url,
+            Payload = "{\"status\":\"not-implemented\"}",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        await _snapshotStore.AddAsync(snapshot, cancellationToken);
+        return Ok(snapshot);
+    }
+
+    private async Task<ActionResult<IReadOnlyList<BlockchainSnapshotDto>>> SyncAllInternalAsync(
+        CancellationToken cancellationToken)
+    {
+        var snapshots = BlockchainsCatalog.All.Select(definition => new BlockchainSnapshotDto
+        {
+            Id = Guid.NewGuid(),
+            Network = definition.Key,
+            SourceUrl = definition.Url,
+            Payload = "{\"status\":\"not-implemented\"}",
+            CreatedAt = DateTimeOffset.UtcNow
+        }).ToList();
+
+        await _snapshotStore.AddRangeAsync(snapshots, cancellationToken);
+        return Ok(snapshots);
     }
 }
