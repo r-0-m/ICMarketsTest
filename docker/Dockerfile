@@ -13,8 +13,8 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["src/Api/ICMarketsTest.Api.csproj", "src/Api/"]
-COPY ["src/Application/ICMarketsTest.Application.csproj", "src/Application/"]
-COPY ["src/Domain/ICMarketsTest.Domain.csproj", "src/Domain/"]
+COPY ["src/Core/ICMarketsTest.Core.csproj", "src/Core/"]
+COPY ["src/Contracts/ICMarketsTest.Contracts.csproj", "src/Contracts/"]
 COPY ["src/Infrastructure/ICMarketsTest.Infrastructure.csproj", "src/Infrastructure/"]
 RUN dotnet restore "src/Api/ICMarketsTest.Api.csproj"
 COPY . .

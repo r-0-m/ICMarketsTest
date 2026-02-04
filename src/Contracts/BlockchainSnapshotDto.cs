@@ -1,4 +1,4 @@
-namespace ICMarketsTest.Application.Contracts;
+namespace ICMarketsTest.Contracts;
 
 /// <summary>
 /// Snapshot payload from a BlockCypher network call.
@@ -20,5 +20,5 @@ public sealed class BlockchainSnapshotDto
     public string Payload { get; init; } = string.Empty;
 
     /// <summary>UTC timestamp when the snapshot was stored.</summary>
-    public DateTimeOffset CreatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
 }

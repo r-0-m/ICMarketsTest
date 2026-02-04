@@ -1,5 +1,5 @@
-using ICMarketsTest.Application.Contracts;
-using ICMarketsTest.Application.Interfaces;
+using ICMarketsTest.Contracts;
+using ICMarketsTest.Core.Interfaces;
 
 namespace ICMarketsTest.Infrastructure.Stores;
 

@@ -1,6 +1,12 @@
-using ICMarketsTest.Application.Interfaces;
+using ICMarketsTest.Contracts;
+using ICMarketsTest.Core.Interfaces;
 using ICMarketsTest.Infrastructure.Clients;
+using ICMarketsTest.Infrastructure.Data;
+using ICMarketsTest.Infrastructure.Interfaces;
+using ICMarketsTest.Infrastructure.Repositories;
 using ICMarketsTest.Infrastructure.Stores;
+using ICMarketsTest.Infrastructure.UnitOfWork;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +16,9 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
-builder.Services.AddSingleton<ISnapshotStore, InMemorySnapshotStore>();
+builder.Services.AddScoped<IBlockchainSnapshotRepository, BlockchainSnapshotRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ISnapshotStore, EfSnapshotStore>();
 var blockCypherMinDelay =
     builder.Configuration.GetValue<int?>("BlockCypher:MinDelayMilliseconds") ?? 350;
 builder.Services.AddSingleton(new BlockCypherClientOptions
@@ -18,6 +26,15 @@ builder.Services.AddSingleton(new BlockCypherClientOptions
     MinDelayMilliseconds = blockCypherMinDelay
 });
 builder.Services.AddHttpClient<IBlockCypherClient, BlockCypherClient>();
+var dbFilePath = builder.Configuration["Database:FilePath"] ?? "..\\..\\sql\\blockchain.db";
+var dbDirectory = Path.GetDirectoryName(dbFilePath);
+if (!string.IsNullOrWhiteSpace(dbDirectory))
+{
+    Directory.CreateDirectory(dbDirectory);
+}
+var connectionString = $"Data Source={dbFilePath}";
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(connectionString));
 
 builder.Services.AddCors(options =>
 {
@@ -34,13 +51,19 @@ builder.Services.AddSwaggerGen(options =>
     var apiXmlPath = Path.Combine(AppContext.BaseDirectory, apiXml);
     options.IncludeXmlComments(apiXmlPath, includeControllerXmlComments: true);
 
-    var appAssembly = typeof(ICMarketsTest.Application.Contracts.BlockchainSnapshotDto).Assembly;
+    var appAssembly = typeof(BlockchainSnapshotDto).Assembly;
     var appXml = $"{appAssembly.GetName().Name}.xml";
     var appXmlPath = Path.Combine(AppContext.BaseDirectory, appXml);
     options.IncludeXmlComments(appXmlPath);
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.EnsureCreated();
+}
 
 if (app.Environment.IsDevelopment())
 {

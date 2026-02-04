@@ -1,6 +1,6 @@
-using ICMarketsTest.Application.Contracts;
+using ICMarketsTest.Contracts;
 
-namespace ICMarketsTest.Application.Interfaces;
+namespace ICMarketsTest.Core.Interfaces;
 
 /// <summary>
 /// Abstraction for storing and retrieving blockchain snapshots.

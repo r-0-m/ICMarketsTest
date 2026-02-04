@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using ICMarketsTest.Application.Blockchains;
+using ICMarketsTest.Core.Blockchains;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ICMarketsTest.Api.Requests;

@@ -1,4 +1,4 @@
-namespace ICMarketsTest.Application.Interfaces;
+namespace ICMarketsTest.Core.Interfaces;
 
 /// <summary>
 /// Abstraction for BlockCypher API calls.

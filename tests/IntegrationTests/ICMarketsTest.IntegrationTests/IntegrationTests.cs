@@ -1,6 +1,8 @@
 ﻿using System.Net.Http.Json;
 using FluentAssertions;
+using ICMarketsTest.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 
 namespace ICMarketsTest.IntegrationTests;
 
@@ -30,5 +32,25 @@ public sealed class BlockchainsApiTests : IClassFixture<WebApplicationFactory<Pr
         }));
 
         response.IsSuccessStatusCode.Should().BeTrue();
+    }
+}
+
+public sealed class DatabaseInitializationTests
+{
+    [Fact]
+    public void EnsureCreated_CreatesSqliteFile()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), $"blockchain-{Guid.NewGuid()}.db");
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite($"Data Source={dbPath}")
+            .Options;
+
+        using (var dbContext = new AppDbContext(options))
+        {
+            dbContext.Database.EnsureCreated();
+        }
+
+        File.Exists(dbPath).Should().BeTrue();
+        File.Delete(dbPath);
     }
 }

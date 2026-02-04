@@ -1,4 +1,4 @@
-namespace ICMarketsTest.Application.Blockchains;
+namespace ICMarketsTest.Core.Blockchains;
 
 /// <summary>
 /// Catalog of supported BlockCypher networks.

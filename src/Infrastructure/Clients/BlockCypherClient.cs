@@ -1,4 +1,4 @@
-using ICMarketsTest.Application.Interfaces;
+using ICMarketsTest.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace ICMarketsTest.Infrastructure.Clients;
@@ -12,7 +12,7 @@ public sealed class BlockCypherClient : IBlockCypherClient
     private readonly ILogger<BlockCypherClient> _logger;
     private readonly TimeSpan _minDelay;
     private readonly SemaphoreSlim _throttle = new(1, 1);
-    private DateTimeOffset _lastRequest = DateTimeOffset.MinValue;
+    private DateTime _lastRequest = DateTime.MinValue;
 
     public BlockCypherClient(
         HttpClient httpClient,
@@ -37,14 +37,14 @@ public sealed class BlockCypherClient : IBlockCypherClient
         await _throttle.WaitAsync(cancellationToken);
         try
         {
-            var now = DateTimeOffset.UtcNow;
+            var now = DateTime.UtcNow;
             var nextAllowed = _lastRequest + _minDelay;
             if (nextAllowed > now)
             {
                 await Task.Delay(nextAllowed - now, cancellationToken);
             }
 
-            _lastRequest = DateTimeOffset.UtcNow;
+            _lastRequest = DateTime.UtcNow;
         }
         finally
         {

@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using ICMarketsTest.Api.Requests;
-using ICMarketsTest.Application.Interfaces;
+using ICMarketsTest.Core.Interfaces;
 using ICMarketsTest.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -13,11 +13,11 @@ public sealed class BlockchainsControllerTests
     {
         var store = new Mock<ISnapshotStore>();
         store.Setup(s => s.GetAsync(It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<ICMarketsTest.Application.Contracts.BlockchainSnapshotDto>());
-        store.Setup(s => s.AddAsync(It.IsAny<ICMarketsTest.Application.Contracts.BlockchainSnapshotDto>(),
+            .ReturnsAsync(Array.Empty<ICMarketsTest.Contracts.BlockchainSnapshotDto>());
+        store.Setup(s => s.AddAsync(It.IsAny<ICMarketsTest.Contracts.BlockchainSnapshotDto>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        store.Setup(s => s.AddRangeAsync(It.IsAny<IEnumerable<ICMarketsTest.Application.Contracts.BlockchainSnapshotDto>>(),
+        store.Setup(s => s.AddRangeAsync(It.IsAny<IEnumerable<ICMarketsTest.Contracts.BlockchainSnapshotDto>>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 

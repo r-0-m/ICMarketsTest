@@ -1,7 +1,7 @@
 using ICMarketsTest.Api.Requests;
-using ICMarketsTest.Application.Blockchains;
-using ICMarketsTest.Application.Contracts;
-using ICMarketsTest.Application.Interfaces;
+using ICMarketsTest.Contracts;
+using ICMarketsTest.Core.Blockchains;
+using ICMarketsTest.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ICMarketsTest.Controllers;
@@ -66,7 +66,7 @@ public sealed class BlockchainsController : ControllerBase
             Network = definition.Key,
             SourceUrl = definition.Url,
             Payload = payload,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = DateTime.UtcNow
         };
         await _snapshotStore.AddAsync(snapshot, cancellationToken);
         return Ok(snapshot);
@@ -87,7 +87,7 @@ public sealed class BlockchainsController : ControllerBase
                 Network = definition.Key,
                 SourceUrl = definition.Url,
                 Payload = payload,
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTime.UtcNow
             };
         });
 

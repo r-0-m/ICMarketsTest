@@ -1,4 +1,4 @@
-namespace ICMarketsTest.Application.Blockchains;
+namespace ICMarketsTest.Core.Blockchains;
 
 /// <summary>
 /// Defines a supported blockchain network and its BlockCypher endpoint.
