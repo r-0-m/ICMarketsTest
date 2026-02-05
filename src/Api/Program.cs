@@ -1,4 +1,6 @@
 using ICMarketsTest.Contracts;
+using ICMarketsTest.Core.Events;
+using ICMarketsTest.Core.Handlers;
 using ICMarketsTest.Core.Interfaces;
 using ICMarketsTest.Infrastructure.Clients;
 using ICMarketsTest.Infrastructure.Data;
@@ -6,6 +8,7 @@ using ICMarketsTest.Infrastructure.Interfaces;
 using ICMarketsTest.Infrastructure.Repositories;
 using ICMarketsTest.Infrastructure.Stores;
 using ICMarketsTest.Infrastructure.UnitOfWork;
+using ICMarketsTest.Infrastructure.Events;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,6 +29,10 @@ builder.Services.AddSingleton(new BlockCypherClientOptions
     MinDelayMilliseconds = blockCypherMinDelay
 });
 builder.Services.AddHttpClient<IBlockCypherClient, BlockCypherClient>();
+builder.Services.AddSingleton<IEventPublisher, InMemoryEventPublisher>();
+builder.Services.AddScoped<GetSnapshotsHandler>();
+builder.Services.AddScoped<SyncBlockchainHandler>();
+builder.Services.AddScoped<SyncAllBlockchainsHandler>();
 var dbFilePath = builder.Configuration["Database:FilePath"] ?? "..\\..\\sql\\blockchain.db";
 var dbDirectory = Path.GetDirectoryName(dbFilePath);
 if (!string.IsNullOrWhiteSpace(dbDirectory))

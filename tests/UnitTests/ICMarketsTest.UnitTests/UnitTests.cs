@@ -1,5 +1,7 @@
 ﻿using FluentAssertions;
 using ICMarketsTest.Api.Requests;
+using ICMarketsTest.Core.Events;
+using ICMarketsTest.Core.Handlers;
 using ICMarketsTest.Core.Interfaces;
 using ICMarketsTest.Controllers;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +27,15 @@ public sealed class BlockchainsControllerTests
         client.Setup(c => c.GetBlockchainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("{\"status\":\"ok\"}");
 
-        return new BlockchainsController(store.Object, client.Object);
+        var publisher = new Mock<IEventPublisher>();
+        publisher.Setup(p => p.PublishAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var getHandler = new GetSnapshotsHandler(store.Object);
+        var syncHandler = new SyncBlockchainHandler(client.Object, store.Object, publisher.Object);
+        var syncAllHandler = new SyncAllBlockchainsHandler(client.Object, store.Object, publisher.Object);
+
+        return new BlockchainsController(getHandler, syncHandler, syncAllHandler);
     }
 
     [Fact]
