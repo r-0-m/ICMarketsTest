@@ -55,6 +55,7 @@ CQRS approach (Core)
 Persistence (Infrastructure)
 - EF Core with SQLite via a DbContext.
 - Repository + Unit of Work for write paths; store abstraction for snapshot access.
+- Unit of Work would have more sense here if we introduced an outbox/event table or multi‑repo transactions. Here we have a single repository, so it mainly centralizes SaveChangesAsync; But I kept it per task requirements and for the growth potential.
 
 External data ingestion
 - BlockCypher HTTP client with throttling configuration and HTTP codes handling

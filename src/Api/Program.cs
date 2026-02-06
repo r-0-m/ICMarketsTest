@@ -1,10 +1,17 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using ICMarketsTest.Api.Middleware;
+using ICMarketsTest.Api.Options;
+using ICMarketsTest.Api.Validation;
 using ICMarketsTest.Contracts;
+using ICMarketsTest.Core.Blockchains;
 using ICMarketsTest.Core.Events;
 using ICMarketsTest.Core.Handlers;
 using ICMarketsTest.Core.Interfaces;
 using ICMarketsTest.Infrastructure.Clients;
 using ICMarketsTest.Infrastructure.Persistence.Data;
 using ICMarketsTest.Infrastructure.Persistence.Interfaces;
+using ICMarketsTest.Infrastructure.Persistence.Options;
 using ICMarketsTest.Infrastructure.Persistence.Repositories;
 using ICMarketsTest.Infrastructure.Persistence.Stores;
 using ICMarketsTest.Infrastructure.Persistence.UnitOfWork;
@@ -19,16 +26,35 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<SyncBlockchainRequestValidator>();
 builder.Services.AddScoped<IBlockchainSnapshotRepository, BlockchainSnapshotRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ISnapshotStore, EfSnapshotStore>();
 var blockCypherMinDelay =
     builder.Configuration.GetValue<int?>("BlockCypher:MinDelayMilliseconds") ?? 350;
+var blockCypherTimeoutSeconds =
+    builder.Configuration.GetValue<int?>("BlockCypher:TimeoutSeconds") ?? 10;
 builder.Services.AddSingleton(new BlockCypherClientOptions
 {
     MinDelayMilliseconds = blockCypherMinDelay
 });
-builder.Services.AddHttpClient<IBlockCypherClient, BlockCypherClient>();
+builder.Services.AddHttpClient<IBlockCypherClient, BlockCypherClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(1, blockCypherTimeoutSeconds));
+});
+var snapshotMinInterval =
+    builder.Configuration.GetValue<int?>("Snapshots:MinIntervalSeconds") ?? 30;
+builder.Services.AddSingleton(new SnapshotDedupOptions
+{
+    MinIntervalSeconds = snapshotMinInterval
+});
+var snapshotMaxLimit =
+    builder.Configuration.GetValue<int?>("Snapshots:MaxLimit") ?? 500;
+builder.Services.AddSingleton(new SnapshotQueryOptions
+{
+    MaxLimit = snapshotMaxLimit
+});
 builder.Services.AddSingleton<IEventPublisher, InMemoryEventPublisher>();
 builder.Services.AddScoped<GetSnapshotsHandler>();
 builder.Services.AddScoped<SyncBlockchainHandler>();
@@ -36,6 +62,22 @@ builder.Services.AddScoped<SyncAllBlockchainsHandler>();
 builder.Services.AddAutoMapper(
     typeof(ICMarketsTest.Api.Mapping.ApiMappingProfile).Assembly,
     typeof(ICMarketsTest.Infrastructure.Mapping.InfrastructureMappingProfile).Assembly);
+var configuredNetworks = builder.Configuration
+    .GetSection("Blockchains:Networks")
+    .Get<BlockchainNetworkOptions[]>() ?? Array.Empty<BlockchainNetworkOptions>();
+if (configuredNetworks.Length > 0)
+{
+    var definitions = configuredNetworks
+        .Where(network => !string.IsNullOrWhiteSpace(network.Key))
+        .Select(network => new BlockchainDefinition(
+            network.Key,
+            string.IsNullOrWhiteSpace(network.Name) ? network.Key : network.Name,
+            network.Url))
+        .Where(definition => !string.IsNullOrWhiteSpace(definition.Url))
+        .ToList();
+
+    BlockchainsCatalog.ReplaceAll(definitions);
+}
 var dbFilePath = builder.Configuration["Database:FilePath"] ?? "..\\..\\sql\\blockchain.db";
 var dbDirectory = Path.GetDirectoryName(dbFilePath);
 if (!string.IsNullOrWhiteSpace(dbDirectory))
@@ -75,14 +117,21 @@ app.Use(async (context, next) =>
         .CreateLogger("RequestLogging");
     var endpointName = context.GetEndpoint()?.DisplayName ?? "unknown";
 
-    await next();
-
-    logger.LogInformation("HTTP {Method} {Path} -> {StatusCode} ({Endpoint})",
-        context.Request.Method,
-        context.Request.Path,
-        context.Response.StatusCode,
-        endpointName);
+    try
+    {
+        await next();
+    }
+    finally
+    {
+        logger.LogInformation("HTTP {Method} {Path} -> {StatusCode} ({Endpoint})",
+            context.Request.Method,
+            context.Request.Path,
+            context.Response.StatusCode,
+            endpointName);
+    }
 });
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 using (var scope = app.Services.CreateScope())
 {

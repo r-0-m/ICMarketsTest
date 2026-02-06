@@ -2,6 +2,7 @@ using ICMarketsTest.Contracts;
 using ICMarketsTest.Core.Blockchains;
 using ICMarketsTest.Core.Commands;
 using ICMarketsTest.Core.Events;
+using ICMarketsTest.Core.Exceptions;
 using ICMarketsTest.Core.Interfaces;
 
 namespace ICMarketsTest.Core.Handlers;
@@ -28,10 +29,19 @@ public sealed class SyncBlockchainHandler
     {
         if (!BlockchainsCatalog.TryGet(command.Network, out var definition))
         {
-            throw new InvalidOperationException($"Unsupported blockchain network '{command.Network}'.");
+            throw new ArgumentException($"Unsupported blockchain network '{command.Network}'.");
         }
 
-        var payload = await TryFetchPayloadAsync(definition.Url, cancellationToken);
+        string payload;
+        try
+        {
+            payload = await _blockCypherClient.GetBlockchainAsync(definition.Url, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new ExternalServiceException(
+                $"Failed to fetch BlockCypher data for '{definition.Key}'.", ex);
+        }
         var snapshot = new BlockchainSnapshotDto
         {
             Id = Guid.NewGuid(),
@@ -44,17 +54,5 @@ public sealed class SyncBlockchainHandler
         await _snapshotStore.AddAsync(snapshot, cancellationToken);
         await _eventPublisher.PublishAsync(new BlockchainSnapshotStored(snapshot), cancellationToken);
         return snapshot;
-    }
-
-    private async Task<string> TryFetchPayloadAsync(string url, CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await _blockCypherClient.GetBlockchainAsync(url, cancellationToken);
-        }
-        catch
-        {
-            return "{\"status\":\"unavailable\"}";
-        }
     }
 }

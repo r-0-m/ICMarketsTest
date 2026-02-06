@@ -45,4 +45,13 @@ public sealed class BlockchainSnapshotRepository : IBlockchainSnapshotRepository
 
         return await query.ToListAsync(cancellationToken);
     }
+
+    public Task<BlockchainSnapshot?> GetLatestAsync(string network, CancellationToken cancellationToken)
+    {
+        return _dbContext.BlockchainSnapshots
+            .AsNoTracking()
+            .Where(snapshot => snapshot.Network == network)
+            .OrderByDescending(snapshot => snapshot.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
 }

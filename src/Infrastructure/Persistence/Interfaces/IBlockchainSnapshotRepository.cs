@@ -10,4 +10,5 @@ public interface IBlockchainSnapshotRepository
     Task AddAsync(BlockchainSnapshot snapshot, CancellationToken cancellationToken);
     Task AddRangeAsync(IEnumerable<BlockchainSnapshot> snapshots, CancellationToken cancellationToken);
     Task<IReadOnlyList<BlockchainSnapshot>> GetAsync(string? network, int? limit, CancellationToken cancellationToken);
+    Task<BlockchainSnapshot?> GetLatestAsync(string network, CancellationToken cancellationToken);
 }

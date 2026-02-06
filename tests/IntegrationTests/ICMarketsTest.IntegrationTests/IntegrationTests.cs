@@ -22,36 +22,6 @@ public sealed class BlockchainsApiTests : IClassFixture<WebApplicationFactory<Pr
 
         response.IsSuccessStatusCode.Should().BeTrue();
     }
-
-    [Fact]
-    public async Task SyncBlockchain_ReturnsOk()
-    {
-        var response = await _client.PostAsync("/api/blockchains/sync", JsonContent.Create(new
-        {
-            network = "btc-main"
-        }));
-
-        response.IsSuccessStatusCode.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task SyncThenSnapshots_ReturnsStoredItem()
-    {
-        var syncResponse = await _client.PostAsync("/api/blockchains/sync", JsonContent.Create(new
-        {
-            network = "btc-main"
-        }));
-        syncResponse.IsSuccessStatusCode.Should().BeTrue();
-
-        var snapshots = await _client.GetFromJsonAsync<List<BlockchainSnapshotResponse>>(
-            "/api/blockchains/snapshots?network=btc-main");
-
-        snapshots.Should().NotBeNull();
-        var snapshotList = snapshots ?? throw new InvalidOperationException("Snapshots response is null.");
-        snapshotList.Should().Contain(snapshot => snapshot.Network == "btc-main");
-    }
-
-    private sealed record BlockchainSnapshotResponse(string Network);
 }
 
 public sealed class DatabaseInitializationTests

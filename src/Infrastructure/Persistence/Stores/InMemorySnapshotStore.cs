@@ -1,5 +1,6 @@
 using ICMarketsTest.Contracts;
 using ICMarketsTest.Core.Interfaces;
+using ICMarketsTest.Infrastructure.Persistence.Options;
 
 namespace ICMarketsTest.Infrastructure.Persistence.Stores;
 
@@ -7,12 +8,21 @@ public sealed class InMemorySnapshotStore : ISnapshotStore
 {
     private readonly List<BlockchainSnapshotDto> _snapshots = new();
     private readonly object _lock = new();
+    private readonly TimeSpan _minInterval;
+
+    public InMemorySnapshotStore(SnapshotDedupOptions dedupOptions)
+    {
+        _minInterval = TimeSpan.FromSeconds(Math.Max(0, dedupOptions.MinIntervalSeconds));
+    }
 
     public Task AddAsync(BlockchainSnapshotDto snapshot, CancellationToken cancellationToken)
     {
         lock (_lock)
         {
-            _snapshots.Add(snapshot);
+            if (!IsWithinInterval(snapshot, GetLatest(snapshot.Network)))
+            {
+                _snapshots.Add(snapshot);
+            }
         }
 
         return Task.CompletedTask;
@@ -22,7 +32,20 @@ public sealed class InMemorySnapshotStore : ISnapshotStore
     {
         lock (_lock)
         {
-            _snapshots.AddRange(snapshots);
+            foreach (var group in snapshots.GroupBy(snapshot => snapshot.Network))
+            {
+                var latest = GetLatest(group.Key);
+                foreach (var snapshot in group.OrderBy(snapshot => snapshot.CreatedAt))
+                {
+                    if (IsWithinInterval(snapshot, latest))
+                    {
+                        continue;
+                    }
+
+                    _snapshots.Add(snapshot);
+                    latest = snapshot;
+                }
+            }
         }
 
         return Task.CompletedTask;
@@ -52,5 +75,23 @@ public sealed class InMemorySnapshotStore : ISnapshotStore
         }
 
         return Task.FromResult<IReadOnlyList<BlockchainSnapshotDto>>(query.ToList());
+    }
+
+    private BlockchainSnapshotDto? GetLatest(string network)
+    {
+        return _snapshots
+            .Where(snapshot => snapshot.Network == network)
+            .OrderByDescending(snapshot => snapshot.CreatedAt)
+            .FirstOrDefault();
+    }
+
+    private bool IsWithinInterval(BlockchainSnapshotDto snapshot, BlockchainSnapshotDto? latest)
+    {
+        if (_minInterval <= TimeSpan.Zero || latest is null)
+        {
+            return false;
+        }
+
+        return snapshot.CreatedAt <= latest.CreatedAt.Add(_minInterval);
     }
 }
