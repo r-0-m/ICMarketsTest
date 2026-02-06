@@ -18,6 +18,7 @@ Gateway: https://localhost:7260
 ## Run
 Docker:
 `docker compose -f docker/docker-compose.yml up --build`
+	!note: swagger is not present in docker container because docker is configured to use Production configs
 
 API:
 `dotnet run --project src/Api/ICMarketsTest.Api.csproj`
