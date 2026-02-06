@@ -2,10 +2,8 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
-USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
 
 
 # This stage is used to build the service project
@@ -29,5 +27,13 @@ RUN dotnet publish "ICMarketsTest.Api.csproj" -c $BUILD_CONFIGURATION -o /app/pu
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
+ENV ASPNETCORE_URLS=http://+:8080
+ENV Database__FilePath=/app/sql/blockchain.db
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /app/sql
 COPY --from=publish /app/publish .
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -fsS http://localhost:8080/health || exit 1
 ENTRYPOINT ["dotnet", "ICMarketsTest.Api.dll"]

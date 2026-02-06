@@ -16,6 +16,9 @@ Gateway: https://localhost:7260
 `GET /api/...` - same API routes proxied through gateway
 
 ## Run
+Docker:
+`docker compose -f docker/docker-compose.yml up --build`
+
 API:
 `dotnet run --project src/Api/ICMarketsTest.Api.csproj`
 
@@ -53,3 +56,5 @@ Gateway (optional)
 
 Operational basics
 - Health checks, CORS, and request logging wired into the pipeline.
+
+Docker integration
