@@ -3,11 +3,11 @@ using ICMarketsTest.Core.Events;
 using ICMarketsTest.Core.Handlers;
 using ICMarketsTest.Core.Interfaces;
 using ICMarketsTest.Infrastructure.Clients;
-using ICMarketsTest.Infrastructure.Data;
-using ICMarketsTest.Infrastructure.Interfaces;
-using ICMarketsTest.Infrastructure.Repositories;
-using ICMarketsTest.Infrastructure.Stores;
-using ICMarketsTest.Infrastructure.UnitOfWork;
+using ICMarketsTest.Infrastructure.Persistence.Data;
+using ICMarketsTest.Infrastructure.Persistence.Interfaces;
+using ICMarketsTest.Infrastructure.Persistence.Repositories;
+using ICMarketsTest.Infrastructure.Persistence.Stores;
+using ICMarketsTest.Infrastructure.Persistence.UnitOfWork;
 using ICMarketsTest.Infrastructure.Events;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +33,9 @@ builder.Services.AddSingleton<IEventPublisher, InMemoryEventPublisher>();
 builder.Services.AddScoped<GetSnapshotsHandler>();
 builder.Services.AddScoped<SyncBlockchainHandler>();
 builder.Services.AddScoped<SyncAllBlockchainsHandler>();
+builder.Services.AddAutoMapper(
+    typeof(ICMarketsTest.Api.Mapping.ApiMappingProfile).Assembly,
+    typeof(ICMarketsTest.Infrastructure.Mapping.InfrastructureMappingProfile).Assembly);
 var dbFilePath = builder.Configuration["Database:FilePath"] ?? "..\\..\\sql\\blockchain.db";
 var dbDirectory = Path.GetDirectoryName(dbFilePath);
 if (!string.IsNullOrWhiteSpace(dbDirectory))

@@ -1,3 +1,4 @@
+using AutoMapper;
 using ICMarketsTest.Api.Requests;
 using ICMarketsTest.Contracts;
 using ICMarketsTest.Core.Blockchains;
@@ -15,15 +16,18 @@ namespace ICMarketsTest.Controllers;
 [Route("api/blockchains")]
 public sealed class BlockchainsController : ControllerBase
 {
+    private readonly IMapper _mapper;
     private readonly GetSnapshotsHandler _getSnapshotsHandler;
     private readonly SyncBlockchainHandler _syncBlockchainHandler;
     private readonly SyncAllBlockchainsHandler _syncAllBlockchainsHandler;
 
     public BlockchainsController(
+        IMapper mapper,
         GetSnapshotsHandler getSnapshotsHandler,
         SyncBlockchainHandler syncBlockchainHandler,
         SyncAllBlockchainsHandler syncAllBlockchainsHandler)
     {
+        _mapper = mapper;
         _getSnapshotsHandler = getSnapshotsHandler;
         _syncBlockchainHandler = syncBlockchainHandler;
         _syncAllBlockchainsHandler = syncAllBlockchainsHandler;
@@ -50,7 +54,7 @@ public sealed class BlockchainsController : ControllerBase
             network = definition.Key;
         }
 
-        return GetSnapshotsInternalAsync(network, request.Limit, cancellationToken);
+        return GetSnapshotsInternalAsync(request, network, cancellationToken);
     }
 
     /// <summary>Synchronizes a single network and stores a snapshot.</summary>
@@ -66,9 +70,9 @@ public sealed class BlockchainsController : ControllerBase
             return BadRequest("Unsupported blockchain network.");
         }
 
-        var snapshot = await _syncBlockchainHandler.HandleAsync(
-            new SyncBlockchainCommand(definition.Key),
-            cancellationToken);
+        var mappedRequest = new SyncBlockchainRequest { Network = definition.Key };
+        var command = _mapper.Map<SyncBlockchainCommand>(mappedRequest);
+        var snapshot = await _syncBlockchainHandler.HandleAsync(command, cancellationToken);
         return Ok(snapshot);
     }
 
@@ -85,13 +89,17 @@ public sealed class BlockchainsController : ControllerBase
     }
 
     private async Task<ActionResult<IReadOnlyList<BlockchainSnapshotDto>>> GetSnapshotsInternalAsync(
+        GetBlockchainSnapshotsRequest request,
         string? network,
-        int? limit,
         CancellationToken cancellationToken)
     {
-        var snapshots = await _getSnapshotsHandler.HandleAsync(
-            new GetSnapshotsQuery(network, limit),
-            cancellationToken);
+        var mappedRequest = new GetBlockchainSnapshotsRequest
+        {
+            Network = network,
+            Limit = request.Limit
+        };
+        var query = _mapper.Map<GetSnapshotsQuery>(mappedRequest);
+        var snapshots = await _getSnapshotsHandler.HandleAsync(query, cancellationToken);
         return Ok(snapshots);
     }
 }

@@ -1,9 +1,9 @@
-using ICMarketsTest.Infrastructure.Entities;
-using ICMarketsTest.Infrastructure.Interfaces;
-using ICMarketsTest.Infrastructure.Data;
+using ICMarketsTest.Infrastructure.Persistence.Data;
+using ICMarketsTest.Infrastructure.Persistence.Entities;
+using ICMarketsTest.Infrastructure.Persistence.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace ICMarketsTest.Infrastructure.Repositories;
+namespace ICMarketsTest.Infrastructure.Persistence.Repositories;
 
 public sealed class BlockchainSnapshotRepository : IBlockchainSnapshotRepository
 {

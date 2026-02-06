@@ -1,4 +1,4 @@
-namespace ICMarketsTest.Infrastructure.Interfaces;
+namespace ICMarketsTest.Infrastructure.Persistence.Interfaces;
 
 /// <summary>
 /// Unit of work for persistence operations.

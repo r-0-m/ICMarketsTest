@@ -1,7 +1,7 @@
-using ICMarketsTest.Infrastructure.Data;
-using ICMarketsTest.Infrastructure.Interfaces;
+using ICMarketsTest.Infrastructure.Persistence.Data;
+using ICMarketsTest.Infrastructure.Persistence.Interfaces;
 
-namespace ICMarketsTest.Infrastructure.UnitOfWork;
+namespace ICMarketsTest.Infrastructure.Persistence.UnitOfWork;
 
 public sealed class UnitOfWork : IUnitOfWork
 {

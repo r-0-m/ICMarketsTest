@@ -1,7 +1,7 @@
 using ICMarketsTest.Contracts;
 using ICMarketsTest.Core.Interfaces;
 
-namespace ICMarketsTest.Infrastructure.Stores;
+namespace ICMarketsTest.Infrastructure.Persistence.Stores;
 
 public sealed class InMemorySnapshotStore : ISnapshotStore
 {

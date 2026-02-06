@@ -1,6 +1,0 @@
-@ICMarketsTest_HostAddress = http://localhost:5296
-
-GET {{ICMarketsTest_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

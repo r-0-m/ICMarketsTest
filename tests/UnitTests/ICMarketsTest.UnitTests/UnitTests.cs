@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using AutoMapper;
+using FluentAssertions;
 using ICMarketsTest.Api.Requests;
 using ICMarketsTest.Core.Events;
 using ICMarketsTest.Core.Handlers;
@@ -13,6 +14,10 @@ public sealed class BlockchainsControllerTests
 {
     private static BlockchainsController CreateController()
     {
+        var mapperConfig = new MapperConfiguration(cfg =>
+            cfg.AddProfile(new ICMarketsTest.Api.Mapping.ApiMappingProfile()));
+        var mapper = mapperConfig.CreateMapper();
+
         var store = new Mock<ISnapshotStore>();
         store.Setup(s => s.GetAsync(It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<ICMarketsTest.Contracts.BlockchainSnapshotDto>());
@@ -35,7 +40,7 @@ public sealed class BlockchainsControllerTests
         var syncHandler = new SyncBlockchainHandler(client.Object, store.Object, publisher.Object);
         var syncAllHandler = new SyncAllBlockchainsHandler(client.Object, store.Object, publisher.Object);
 
-        return new BlockchainsController(getHandler, syncHandler, syncAllHandler);
+        return new BlockchainsController(mapper, getHandler, syncHandler, syncAllHandler);
     }
 
     [Fact]
@@ -44,7 +49,7 @@ public sealed class BlockchainsControllerTests
         var controller = CreateController();
         var result = controller.GetDefinitions();
 
-        result.Should().BeOfType<OkResult>();
+        result.Result.Should().BeOfType<OkObjectResult>();
     }
 
     [Fact]
@@ -55,7 +60,7 @@ public sealed class BlockchainsControllerTests
 
         var result = await controller.GetSnapshots(request, CancellationToken.None);
 
-        result.Should().BeOfType<OkResult>();
+        result.Result.Should().BeOfType<OkObjectResult>();
     }
 
     [Fact]
@@ -66,7 +71,7 @@ public sealed class BlockchainsControllerTests
 
         var result = await controller.SyncBlockchain(request, CancellationToken.None);
 
-        result.Should().BeOfType<OkResult>();
+        result.Result.Should().BeOfType<OkObjectResult>();
     }
 
     [Fact]
@@ -76,6 +81,6 @@ public sealed class BlockchainsControllerTests
 
         var result = await controller.SyncAll(CancellationToken.None);
 
-        result.Should().BeOfType<OkResult>();
+        result.Result.Should().BeOfType<OkObjectResult>();
     }
 }

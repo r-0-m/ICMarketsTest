@@ -1,6 +1,6 @@
 ﻿using System.Net.Http.Json;
 using FluentAssertions;
-using ICMarketsTest.Infrastructure.Data;
+using ICMarketsTest.Infrastructure.Persistence.Data;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,12 +42,13 @@ public sealed class DatabaseInitializationTests
     {
         var dbPath = Path.Combine(Path.GetTempPath(), $"blockchain-{Guid.NewGuid()}.db");
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite($"Data Source={dbPath}")
+            .UseSqlite($"Data Source={dbPath};Pooling=False")
             .Options;
 
         using (var dbContext = new AppDbContext(options))
         {
             dbContext.Database.EnsureCreated();
+            dbContext.Database.CloseConnection();
         }
 
         File.Exists(dbPath).Should().BeTrue();

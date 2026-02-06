@@ -1,7 +1,7 @@
-using ICMarketsTest.Infrastructure.Entities;
+using ICMarketsTest.Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace ICMarketsTest.Infrastructure.Data;
+namespace ICMarketsTest.Infrastructure.Persistence.Data;
 
 public sealed class AppDbContext : DbContext
 {

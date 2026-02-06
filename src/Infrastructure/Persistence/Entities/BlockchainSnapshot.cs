@@ -1,4 +1,4 @@
-namespace ICMarketsTest.Infrastructure.Entities;
+namespace ICMarketsTest.Infrastructure.Persistence.Entities;
 
 /// <summary>
 /// Persisted snapshot from a BlockCypher network call.

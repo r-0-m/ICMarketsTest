@@ -1,6 +1,6 @@
-using ICMarketsTest.Infrastructure.Entities;
+using ICMarketsTest.Infrastructure.Persistence.Entities;
 
-namespace ICMarketsTest.Infrastructure.Interfaces;
+namespace ICMarketsTest.Infrastructure.Persistence.Interfaces;
 
 /// <summary>
 /// Repository for blockchain snapshots.
