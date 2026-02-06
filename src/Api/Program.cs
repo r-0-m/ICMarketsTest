@@ -1,3 +1,4 @@
+using ICMarketsTest.Api.Middleware;
 using ICMarketsTest.Contracts;
 using ICMarketsTest.Core.Events;
 using ICMarketsTest.Core.Handlers;
@@ -75,14 +76,21 @@ app.Use(async (context, next) =>
         .CreateLogger("RequestLogging");
     var endpointName = context.GetEndpoint()?.DisplayName ?? "unknown";
 
-    await next();
-
-    logger.LogInformation("HTTP {Method} {Path} -> {StatusCode} ({Endpoint})",
-        context.Request.Method,
-        context.Request.Path,
-        context.Response.StatusCode,
-        endpointName);
+    try
+    {
+        await next();
+    }
+    finally
+    {
+        logger.LogInformation("HTTP {Method} {Path} -> {StatusCode} ({Endpoint})",
+            context.Request.Method,
+            context.Request.Path,
+            context.Response.StatusCode,
+            endpointName);
+    }
 });
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 using (var scope = app.Services.CreateScope())
 {
