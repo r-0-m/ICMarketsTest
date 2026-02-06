@@ -2,23 +2,34 @@
 ICMarketsTest is a .NET 9 Web API that stores BlockCypher blockchain snapshots (ETH, DASH, BTC, LTC) in SQLite.
 It exposes history and sync endpoints, and a small YARP gateway for basic security and traffic control.
 
+## Documentation
+You may find the screenshots of swagger, db structure and successful endpoint execution inside swagger in the `/docs/screenshots` folder of the repo
+
 ## Endpoints
 Swagger (API): `https://localhost:7220/swagger` (Development only)
 
 `GET /api/blockchains` - list supported networks (use this first to get provider keys like `btc-main`)
+
 `GET /api/blockchains/snapshots?network=btc-main&limit=50` - snapshot history, newest first
+
 `POST /api/blockchains/sync` - sync one network, body: `{ "network": "btc-main" }`
+
 `POST /api/blockchains/sync-all` - sync all supported networks
+
 `GET /health` - API health check
 
 Gateway: https://localhost:7260
+
 `GET /health` - gateway health check
+
 `GET /api/...` - same API routes proxied through gateway
 
 ## Run
 Docker:
 `docker compose -f docker/docker-compose.yml up --build`
 	!note: swagger is not present in docker container because docker is configured to use Production configs
+
+	!note: so as it's a good pattern to configure Docker to be using Production settings, Swagger is not present in the docker version of the app. Swagger is development-only
 
 API:
 `dotnet run --project src/Api/ICMarketsTest.Api.csproj`
