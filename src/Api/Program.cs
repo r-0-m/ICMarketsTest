@@ -6,6 +6,7 @@ using ICMarketsTest.Core.Interfaces;
 using ICMarketsTest.Infrastructure.Clients;
 using ICMarketsTest.Infrastructure.Persistence.Data;
 using ICMarketsTest.Infrastructure.Persistence.Interfaces;
+using ICMarketsTest.Infrastructure.Persistence.Options;
 using ICMarketsTest.Infrastructure.Persistence.Repositories;
 using ICMarketsTest.Infrastructure.Persistence.Stores;
 using ICMarketsTest.Infrastructure.Persistence.UnitOfWork;
@@ -30,6 +31,12 @@ builder.Services.AddSingleton(new BlockCypherClientOptions
     MinDelayMilliseconds = blockCypherMinDelay
 });
 builder.Services.AddHttpClient<IBlockCypherClient, BlockCypherClient>();
+var snapshotMinInterval =
+    builder.Configuration.GetValue<int?>("Snapshots:MinIntervalSeconds") ?? 30;
+builder.Services.AddSingleton(new SnapshotDedupOptions
+{
+    MinIntervalSeconds = snapshotMinInterval
+});
 builder.Services.AddSingleton<IEventPublisher, InMemoryEventPublisher>();
 builder.Services.AddScoped<GetSnapshotsHandler>();
 builder.Services.AddScoped<SyncBlockchainHandler>();
