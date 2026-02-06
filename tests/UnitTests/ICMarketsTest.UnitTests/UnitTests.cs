@@ -84,3 +84,35 @@ public sealed class BlockchainsControllerTests
         result.Result.Should().BeOfType<OkObjectResult>();
     }
 }
+
+public sealed class SyncBlockchainHandlerTests
+{
+    [Fact]
+    public async Task HandleAsync_StoresSnapshot_AndPublishesEvent()
+    {
+        var store = new Mock<ISnapshotStore>();
+        store.Setup(s => s.AddAsync(It.IsAny<ICMarketsTest.Contracts.BlockchainSnapshotDto>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var client = new Mock<IBlockCypherClient>();
+        client.Setup(c => c.GetBlockchainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("{\"status\":\"ok\"}");
+
+        var publisher = new Mock<IEventPublisher>();
+        publisher.Setup(p => p.PublishAsync(It.IsAny<BlockchainSnapshotStored>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = new SyncBlockchainHandler(client.Object, store.Object, publisher.Object);
+
+        var result = await handler.HandleAsync(
+            new ICMarketsTest.Core.Commands.SyncBlockchainCommand("btc-main"),
+            CancellationToken.None);
+
+        result.Network.Should().Be("btc-main");
+        store.Verify(s => s.AddAsync(It.IsAny<ICMarketsTest.Contracts.BlockchainSnapshotDto>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        publisher.Verify(p => p.PublishAsync(It.IsAny<BlockchainSnapshotStored>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+}

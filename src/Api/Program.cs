@@ -69,6 +69,21 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("RequestLogging");
+    var endpointName = context.GetEndpoint()?.DisplayName ?? "unknown";
+
+    await next();
+
+    logger.LogInformation("HTTP {Method} {Path} -> {StatusCode} ({Endpoint})",
+        context.Request.Method,
+        context.Request.Path,
+        context.Response.StatusCode,
+        endpointName);
+});
+
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
